@@ -1,0 +1,14 @@
+PROJECT STOCKERRR ..
+
+The Idea: Make a practise US stock trading app using MEAN stack
+
+The Flow Decided till now: 1. user registration sign up login
+
+2. user get certain amount in wallet balance to spend on stocks
+
+3. user can liquedate money when they want
+
+4. use alpaca API for tis
+
+
+Further development: Make Ionic app
