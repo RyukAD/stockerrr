@@ -8,7 +8,7 @@ var userSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false },
     password: String,
     wallet: {}
-});
+}, { timestamps: true });
 
 userSchema.plugin(uniqueValidator);
 

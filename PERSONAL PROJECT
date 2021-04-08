@@ -10,5 +10,9 @@ The Flow Decided till now: 1. user registration sign up login
 
 4. use alpaca API for tis
 
+5. dont actually have to buy the asset from alpaca, u can jst create and order, remember the price for which it was bought for, create a transaction and proceed accordingly.
+
+6. 
+
 
 Further development: Make Ionic app

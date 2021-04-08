@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@alpacahq/alpaca-trade-api": "^2.0.0",
+    "axios": "^0.21.1",
     "bcrypt": "^5.0.1",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
@@ -17,6 +18,7 @@
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.12.3",
-    "mongoose-unique-validator": "^2.0.3"
+    "mongoose-unique-validator": "^2.0.3",
+    "ws": "^7.4.4"
   }
 }

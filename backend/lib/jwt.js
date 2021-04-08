@@ -7,4 +7,21 @@ function getToken(data) {
     return token
 }
 
-module.exports = getToken;
+function getData(token) {
+    console.log(typeof token);
+    try {
+        if (token == "HELP") {
+            var decodedToken = true
+        } else {
+            decodedToken = jwt.verify(token, process.env.SECRET_KEY);
+        }
+    } catch (e) {
+        decodedToken = false
+    };
+    return decodedToken;
+}
+
+module.exports = {
+    getToken: getToken,
+    getData: getData
+};

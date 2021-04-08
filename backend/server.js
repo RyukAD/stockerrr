@@ -51,6 +51,7 @@ app.use(function (req, res, next) {
 //routes start
 app.use('/', require(__dirname + '/routes/index'));
 app.use('/users', require(__dirname + '/routes/users/'));
+app.use('/market', require(__dirname + '/routes/market/'));
 
 //routes end
 
