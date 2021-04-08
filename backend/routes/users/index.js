@@ -12,7 +12,7 @@ router.get("/", get.getUser);
 
 //all post requests here : :
 router.post("/", post.register);
-// router.post("/login", post.login);
+router.post("/login", post.login);
 
 
 module.exports = router;

@@ -1,5 +1,4 @@
 //dependencies together
-var jwt = require('jsonwebtoken');
 var bcrypt = require('bcryptjs');
 
 //models
@@ -7,7 +6,8 @@ var User = require(__dirname + "/../../models/User")
 
 
 //libs
-createResponse = require(__dirname + "/../../lib/responseObject");
+var createResponse = require(__dirname + "/../../lib/responseObject");
+var getToken = require(__dirname + "/../../lib/jwt");
 
 
 module.exports = {
@@ -50,12 +50,18 @@ module.exports = {
 
             if (user) {
                 console.log(user);
-                let token = jwt.sign({
+                let data = {
                     _id: user._id,
                     name: user.name
-                }, process.env.SECRET_KEY, {
-                    expiresIn: 86400 // expires in 24 hours
-                });
+                }
+                // let token = jwt.sign({
+                //     _id: user._id,
+                //     name: user.name
+                // }, process.env.SECRET_KEY, {
+                //     expiresIn: 86400 // expires in 24 hours
+                // });
+
+                let token = getToken(data);
 
                 let respToSend = {
                     _id: user._id,
@@ -68,6 +74,49 @@ module.exports = {
             };
         } catch (err) {
             console.log("ERROR BIG ISSUE : : ", err);
+        };
+    },
+    login: async (req, res, next) => {
+        try {
+            console.log("INSIDE Login : :", req.body);
+
+            if (!req.body.email || !req.body.email.includes("@")) {
+                res.status(400).send(createResponse(400, "Invalid email", "", ""));
+            } else if (!req.body.password) {
+                res.status(400).send(createResponse(400, "Password is required", "", ""));
+            };
+
+            let user = await User.findOne({ email: req.body.email }).catch(err => {
+                throw err;
+            });
+
+            console.log("USER FOUND: : ", user);
+
+            if (user) {
+                let comparePass = await bcrypt.compare(req.body.password, user.password);
+
+                if (comparePass) {
+
+                    let data = {
+                        _id: user._id,
+                        name: user.name
+                    };
+
+                    let token = getToken(data);
+                    let respToSend = {
+                        _id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        mobile: user.mobile,
+                        wallet: user.wallet
+                    };
+                    res.status(200).send(createResponse(200, "Login success", token, respToSend))
+                } else {
+                    res.status(401).send(createResponse(401, "Login Failed", "", ""))
+                };
+            };
+        } catch (err) {
+            console.log("BIG ISSUE LOGIN MEI BROOOO : :", err);
         };
     }
 };

@@ -21,7 +21,7 @@ if (app["env"] == "prod") {
     //code here for prod db connection
 } else {
     const options = {
-        useNewUrlPaser: true,
+        useNewUrlParser: true,
         useUnifiedTopology: true
     };
 
