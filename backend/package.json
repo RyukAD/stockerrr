@@ -19,6 +19,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.12.3",
     "mongoose-unique-validator": "^2.0.3",
-    "ws": "^7.4.4"
+    "ws": "^7.4.4",
+    "yahoo-stock-prices": "^1.1.0"
   }
 }
