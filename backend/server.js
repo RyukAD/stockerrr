@@ -6,6 +6,7 @@ var bodyParser = require("body-parser");
 var cookieParser = require("cookie-parser");
 // var cors = require("cors")
 var mongoose = require('mongoose');
+var auth = require("./lib/jwt");
 
 var app = express();
 app.use(bodyParser.json({ limit: "50mb" }));
@@ -47,6 +48,8 @@ app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
     next();
 });
+//auth dont have to read token on every request
+app.use(auth.validate);
 
 //routes start
 app.use('/', require(__dirname + '/routes/index'));

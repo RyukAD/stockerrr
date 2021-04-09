@@ -7,7 +7,7 @@ var User = require(__dirname + "/../../models/User")
 
 //libs
 var createResponse = require(__dirname + "/../../lib/responseObject");
-var getToken = require(__dirname + "/../../lib/jwt");
+var jwt = require(__dirname + "/../../lib/jwt");
 
 
 module.exports = {
@@ -61,7 +61,7 @@ module.exports = {
                 //     expiresIn: 86400 // expires in 24 hours
                 // });
 
-                let token = getToken(data);
+                let token = jwt.getToken(data);
 
                 let respToSend = {
                     _id: user._id,
@@ -102,7 +102,7 @@ module.exports = {
                         name: user.name
                     };
 
-                    let token = getToken(data);
+                    let token = jwt.getToken(data);
                     let respToSend = {
                         _id: user._id,
                         name: user.name,
