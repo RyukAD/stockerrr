@@ -6,5 +6,6 @@ var router = express.Router();
 var get = require("./get");
 
 router.get("/:stock", get.getMarketData); //get market data for specific stock
+router.get("/:stock/profile", get.profileData); //get company data for specific stock
 
 module.exports = router;

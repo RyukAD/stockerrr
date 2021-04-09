@@ -10,14 +10,15 @@ let __main = async function (req, res, next) {
     ) {
         next();
     } else {
-        let data = getData(req.headers.token)
-        if(data){
+        let data = await getData(req.headers.token)
+        if (data) {
+            // console.log("HELLO", data);
             next()
         } else {
             res.status(401).send({
                 status: {
                     code: 401,
-                    message: "The authentication credentials are missing, or if supplied are not valid or not sufficient to access the resource."
+                    message: "The authentication credentials are missing, or if supplied are not valid or not sufficient or expired to access the resource."
                 }
             });
         };
@@ -32,17 +33,20 @@ function getToken(data) {
 };
 
 function getData(token) {
-    console.log(typeof token);
-    try {
-        if (token == "HELP") {
-            var decodedToken = true
-        } else {
-            decodedToken = jwt.verify(token, process.env.SECRET_KEY);
-        }
-    } catch (e) {
-        decodedToken = false
-    };
-    return decodedToken;
+    return new Promise((resolve, reject) => {
+        console.log(typeof token);
+        try {
+            if (token == "HELP") {
+                var decodedToken = true
+                resolve(true)
+            } else {
+                decodedToken = jwt.verify(token, process.env.SECRET_KEY);
+            }
+        } catch (e) {
+            resolve(false)
+        };
+        resolve(decodedToken);
+    });
 };
 
 module.exports = {

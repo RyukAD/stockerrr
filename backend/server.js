@@ -55,6 +55,7 @@ app.use(auth.validate);
 app.use('/', require(__dirname + '/routes/index'));
 app.use('/users', require(__dirname + '/routes/users/'));
 app.use('/market', require(__dirname + '/routes/market/'));
+app.use('/order', require(__dirname + '/routes/order/'));
 
 //routes end
 

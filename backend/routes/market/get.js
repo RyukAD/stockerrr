@@ -1,7 +1,7 @@
-const Alpaca = require("@alpacahq/alpaca-trade-api");
-const WebSocket = require('ws');
+// const Alpaca = require("@alpacahq/alpaca-trade-api");
+// const WebSocket = require('ws');
 //dependencies
-var stockPrice = require("yahoo-stock-prices")
+// var stockPrice = require("yahoo-stock-prices")
 
 //models
 var Asset = require(__dirname + "/../../models/Asset")
@@ -11,25 +11,25 @@ var createResponse = require(__dirname + "/../../lib/responseObject");
 var jwt = require(__dirname + "/../../lib/jwt");
 var getData = require(__dirname + "/../../lib/makeRequest");
 
-//to get data for all
+//to get data for specific stock
 
 module.exports = {
     getMarketData: async (req, res, next) => {
-        console.log("HELLO WORLD MARKET");
+        console.log("GET MARKET DATA GET.JS MARKET");
 
         try {
-            var today = new Date();
-            var date = today.getDate();
-            var month = today.getMonth();
-            var year = today.getFullYear();
 
-            let token = req.headers.token
+            let token = req.headers.token;
 
             let tokenData = await jwt.getData(token);
 
             if (tokenData) {
 
                 console.log("TOKEN TRUE : : ", tokenData);
+
+                if (!req.params.stock || req.params.stock.length < 3) {
+                    res.status(400).send(createResponse(200, "Invalid stock", "", ""));
+                };
 
                 console.log("REQUESTED TRADE : : ", req.params.stock);
 
@@ -58,27 +58,29 @@ module.exports = {
                     //     console.log("DATA PAYO : :", data);
                     // })
 
-                    var url = "https://financialmodelingprep.com/api/v3/quote/" + asset.symbol + "?apikey=" + process.env.FMP_KEY
+                    var url = "https://financialmodelingprep.com/api/v3/quote/" + asset.symbol + "?apikey=" + process.env.FMP_KEY;
 
-                    let marketObj = await getData(url)
+                    let marketObj = await getData(url);
 
-                    if (marketObj) {
+                    if (marketObj && marketObj.length > 0) {
                         console.log(marketObj);
                         var respToSend = {
-                            name: marketObj[0].name,
-                            currentPrice: marketObj[0].price,
-                            percentageChange: marketObj[0].changesPercentage,
-                            priceChange: marketObj[0].change,
-                            previousClose: marketObj[0].previousClose,
-                            openPrice: marketObj[0].openPrice,
-                            todayLow: marketObj[0].dayLow,
-                            todayHigh: marketObj[0].dayHigh,
-                            thisYearHigh: marketObj[0].yearHigh,
-                            thisYearLow: marketObj[0].yearLow,
-                            exchange: marketObj[0].exchange
+                            name: marketObj[0].name ? marketObj[0].name : '',
+                            currentPrice: marketObj[0].price ? marketObj[0].price : '',
+                            percentageChange: marketObj[0].changesPercentage ? marketObj[0].changesPercentage : '',
+                            priceChange: marketObj[0].change ? marketObj[0].change : '',
+                            previousClose: marketObj[0].previousClose ? marketObj[0].previousClose : '',
+                            openPrice: marketObj[0].openPrice ? marketObj[0].openPrice : '',
+                            todayLow: marketObj[0].dayLow ?  marketObj[0].dayLow : '',
+                            todayHigh: marketObj[0].dayHigh ? marketObj[0].dayHigh : '',
+                            thisYearHigh: marketObj[0].yearHigh ? marketObj[0].yearHigh : '',
+                            thisYearLow: marketObj[0].yearLow ? marketObj[0].yearLow : '',
+                            exchange: marketObj[0].exchange ? marketObj[0].exchange : ''
                         };
                         res.status(200).send(createResponse(200, "Success", token, respToSend));
-                    }
+                    } else {
+                        res.status(400).send(createResponse(200, "No market data found for given stock", "", ""));
+                    };
                     //sample data from fmp api for stock data : :
                     //                 [ { symbol: 'AMZN',
                     // name: 'Amazon.com, Inc.',
@@ -139,12 +141,12 @@ module.exports = {
                 } else {
                     console.log("NO ASSET FOUND : : :");
                     res.status(400).send(createResponse(400, "Asset not found", "", ""))
-                }
+                };
 
             } else {
                 console.log(tokenData);
                 res.status(401).send(createResponse(401, "Invalid token / token expired", "", ""))
-            }
+            };
 
 
         } catch (err) {
@@ -253,5 +255,81 @@ module.exports = {
         // console.log(stream);
 
         // res.status(200).send("OK")
+    },
+    profileData: async (req, res, next) => {
+        console.log("INSIDE PROFILE DATA");
+
+        if (!req.params.stock || req.params.stock.length < 3) {
+            res.status(400).send(createResponse(200, "Invalid stock", "", ""));
+        }
+        try {
+
+            let token = req.headers.token;
+
+            let tokenData = await jwt.getData(token);
+
+            if (tokenData) {
+
+                console.log("REQUESTED TRADE : : ", req.params.stock);
+
+                let queryObj = {
+                    "$text": {
+                        "$search": req.params.stock
+                    }
+                };
+
+                let asset = await Asset.findOne(queryObj).catch(err => {
+                    throw err
+                });
+
+                if (asset) {
+
+                    console.log(asset);
+
+                    var url = "https://financialmodelingprep.com/api/v3/profile/" + asset.symbol + "?apikey=" + process.env.FMP_KEY;
+
+                    let marketObj = await getData(url);
+
+                    if (marketObj && marketObj.length > 0) {
+                        console.log("GOT DATA : :", marketObj);
+
+                        let respToSend = {
+                            symbol: marketObj[0].symbol ? marketObj[0].symbol : '',
+                            marketCap: marketObj[0].mktCap ? marketObj[0].mktCap : '',
+                            companyName: marketObj[0].companyName ? marketObj[0].companyName : '',
+                            currency: marketObj[0].currency ? marketObj[0].currency : '',
+                            exchange: marketObj[0].exchange ? marketObj[0].exchange : '',
+                            exchangeShortName: marketObj[0].exchangeShortName ? marketObj[0].exchangeShortName : '',
+                            industry: marketObj[0].industry ? marketObj[0].industry : '',
+                            website: marketObj[0].website ? marketObj[0].website : '',
+                            description: marketObj[0].description ? marketObj[0].description : '',
+                            ceo: marketObj[0].ceo ? marketObj[0].ceo : '',
+                            sector: marketObj[0].sector ? marketObj[0].sector : '',
+                            country: marketObj[0].country ? marketObj[0].country : '',
+                            fullTimeEmployees: marketObj[0].fullTimeEmployees ? marketObj[0].fullTimeEmployees : '',
+                            phone: marketObj[0].phone ? marketObj[0].phone : '',
+                            address: marketObj[0].address ? marketObj[0].address : '',
+                            city: marketObj[0].city ? marketObj[0].city : '',
+                            state: marketObj[0].state ? marketObj[0].state : '',
+                            zip: marketObj[0].zip ? marketObj[0].zip : '',
+                            image: marketObj[0].image ? marketObj[0].image : ''
+                        }
+
+                        res.send(createResponse(200, "Success", token, respToSend))
+                    } else {
+                        res.status(400).send(createResponse(400, "We currently do not have data for this stock. check back later", "", ""))
+                    };
+                } else {
+                    console.log("NO ASSET FOUND : : :");
+                    res.status(400).send(createResponse(400, "Asset not found", "", ""))
+                };
+            } else {
+                console.log(tokenData);
+                res.status(401).send(createResponse(401, "Invalid token / token expired", "", ""))
+            };
+
+        } catch (e) {
+            console.log("HUGE PROBLEM inside PROFILE DATA : :", e);
+        };
     }
 }

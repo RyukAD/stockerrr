@@ -7,6 +7,7 @@ var userSchema = new mongoose.Schema({
     mobile: { type: Number, required: true },
     isVerified: { type: Boolean, default: false },
     password: String,
+    status: { type: Number, default: 1 },
     wallet: {}
 }, { timestamps: true });
 
