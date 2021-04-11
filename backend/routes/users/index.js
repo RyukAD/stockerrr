@@ -6,7 +6,7 @@ var post = require('./post');
 
 
 //all GET requests here : : 
-router.get("/", get.getUser);
+router.get("/:userId", get.calculate); //calculate the profit or loss user is going to make on a stock owned by user
 
 //get ends
 

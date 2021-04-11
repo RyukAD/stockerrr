@@ -74,6 +74,7 @@ module.exports = {
             };
         } catch (err) {
             console.log("ERROR BIG ISSUE : : ", err);
+            res.status(500).send(createResponse(500, "User already exits", "", ""));
         };
     },
     login: async (req, res, next) => {

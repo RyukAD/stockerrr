@@ -18,12 +18,12 @@ module.exports = {
         try {
 
             if (!req.body.stockName || !req.body.stockSymbol || !req.body.qty || req.body.qty == 0 || !req.body.stockPrice || req.body.stockPrice == 0) {
-                res.status(400).send(createResponse(400, "Invalid request", "", ""))
+                return res.status(400).send(createResponse(400, "Invalid request", "", ""))
             };
 
             var token = req.headers.token;
 
-            var data = await jwt.getData(token)
+            var data = await jwt.getData(token);
 
             if (data) {
 
@@ -45,10 +45,10 @@ module.exports = {
                         type: req.body.type,
                     };
 
-                    if (orderDetails.type == "buy") {
+                    if (orderDetails.type && orderDetails.type == "buy") {
 
                         orderDetails['amount'] = orderDetails.stockPrice.toFixed(2) * orderDetails.qty;
-                        orderDetails['userId'] = ObjectId(data._id)
+                        orderDetails['userId'] = ObjectId(user._id)
 
                         let createNewOrder = await Order.create(orderDetails).catch(e => {
                             throw e
@@ -57,7 +57,7 @@ module.exports = {
                         if (createNewOrder) {
 
                             if ((user.wallet.balance < orderDetails['amount'])) {
-                                res.status(409).send(createResponse(409, "Balance in your account is too low to buy this qty of stock", token, ""));
+                                return res.status(409).send(createResponse(409, "Balance in your account is too low to buy this qty of stock", token, ""));
                             };
 
                             let balance = user.wallet.balance - orderDetails['amount'];
@@ -67,11 +67,26 @@ module.exports = {
                             let updateBalance = await User.findOneAndUpdate({ _id: user._id }, { $set: { "wallet.balance": balance } }).catch(e => { throw e })
 
                             if (updateBalance) {
-                                res.send(createResponse(200, "Purchase successfull", token, createNewOrder))
+                                return res.send(createResponse(200, "Purchase successfull", token, createNewOrder))
                             };
                         };
-                    } else if(orderDetails.type == "sell"){
-                        
+                    } else if (orderDetails.type && orderDetails.type == "sell") {
+
+                        //find all buy orders before selling
+
+                        let buyOrders = await Order.find({ userId: user._id, type: "buy", stockSymbol: orderDetails.stockSymbol }).catch(e => { throw e });
+                        var totalQtyOfStock = 0;
+
+                        if (buyOrders) {
+                            buyOrders.forEach((order) => {
+                                totalQtyOfStock += order.qty;
+                            });
+                        };
+
+                        if(orderDetails.qty > totalQtyOfStock){
+                            return res.status(400).send(createResponse(400, "You cannot sell more than you own.", "", ""))
+                        }
+
                         orderDetails['amount'] = orderDetails.stockPrice.toFixed(2) * orderDetails.qty;
                         orderDetails['userId'] = ObjectId(data._id)
 
@@ -88,16 +103,21 @@ module.exports = {
                             let updateBalance = await User.findOneAndUpdate({ _id: user._id }, { $set: { "wallet.balance": balance } }).catch(e => { throw e })
 
                             if (updateBalance) {
-                                res.send(createResponse(200, "Purchase successfull", token, createNewOrder))
+                                return res.send(createResponse(200, "Purchase successfull", token, createNewOrder))
                             };
                         };
                     } else {
-                        res.status(400).send(createResponse(400, "Invalid order type", "", ""))
+                        return res.status(400).send(createResponse(400, "Invalid order type", "", ""))
                     };
-                };
+                } else {
+
+                    return res.status(404).send(createResponse(400, "User does not exists", "", ""))
+                }
             };
         } catch (e) {
             console.log("HUGE PROBLEM IN CREATING ORDER : ", e);
+            //look for a logger to log error messages: : : : :
+            return res.status(500).send(createResponse(500, "PROBLEM IN CREATING ORDER. TRY AGAIN AFTER SOMETIME", "", ""))
         };
     }
 };
