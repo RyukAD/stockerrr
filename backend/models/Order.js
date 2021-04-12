@@ -11,6 +11,6 @@ var orderSchema = new mongoose.Schema({
     qty: { type: Number, required: true },
 }, { timestamps: true });
 
-orderSchema.index({ name: "text", symbol: "text" });
+orderSchema.index({ stockName: "text", symbol: "text" });
 
 module.exports = mongoose.model('Orders', orderSchema);
