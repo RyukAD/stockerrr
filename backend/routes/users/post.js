@@ -40,7 +40,8 @@ module.exports = {
                 password: hashedPassword,
                 wallet: {
                     balance: 10000,
-                    currency: "dollar"
+                    currency: "dollar",
+                    rewardPoints: 0
                 }
             };
 
@@ -115,23 +116,11 @@ module.exports = {
                 } else {
                     res.status(401).send(createResponse(401, "Login Failed", "", ""))
                 };
-            };
+            } else {
+                res.status(401).send(createResponse(401, "Invalid email or password", "", ""));
+            }
         } catch (err) {
             console.log("BIG ISSUE LOGIN MEI BROOOO : :", err);
         };
     }
 };
-
-
-
-//get data back from JSON TOKEN
-// router.get('/me', function(req, res) {
-    // var token = req.headers['x-access-token'];
-//     // if (!token) return res.status(401).send({ auth: false, message: 'No token provided.' });
-//     
-    // jwt.verify(token, config.secret, function(err, decoded) {
-//     //   if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
-//       
-    //   res.status(200).send(decoded);
-//     // });
-//   });

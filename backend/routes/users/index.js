@@ -3,6 +3,7 @@ var router = express.Router();
 
 var get = require('./get');
 var post = require('./post');
+var put = require('./put');
 
 
 //all GET requests here : : 
@@ -13,6 +14,9 @@ var post = require('./post');
 //all post requests here : :
 router.post("/", post.register);
 router.post("/login", post.login);
+
+//put requests
+router.put("/:userId/wallet", put.updateWallet);
 
 
 module.exports = router;
