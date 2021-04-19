@@ -8,7 +8,9 @@ var orderSchema = new mongoose.Schema({
     stockPrice: { type: Number, required: true },
     status: { type: Number, default: 1 },
     type: String, //type of order buy stock or sell stock
-    qty: { type: Number, required: true },
+    boughtQty: { type: Number },
+    soldQty: { type: Number },
+    holdingQty: { type: Number }
 }, { timestamps: true });
 
 orderSchema.index({ stockName: "text", symbol: "text" });

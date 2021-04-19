@@ -7,6 +7,7 @@ var createResponse = require(__dirname + "/../../lib/responseObject");
 module.exports = {
     updateWallet: async (req, res, next) => {
         //update wallet balance
+        //this put request gives option to manually add amount to the users wallet but we will only give option to reset this to some initial value
 
         try {
 

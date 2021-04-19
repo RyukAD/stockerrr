@@ -18,7 +18,7 @@ module.exports = {
 
         try {
 
-            if (!req.body.stockName || !req.body.stockSymbol || !req.body.qty || req.body.qty == 0 || !req.body.stockPrice || req.body.stockPrice == 0) {
+            if (!req.body.stockName || !req.body.stockSymbol || !req.body.stockPrice || req.body.stockPrice == 0) {
                 return res.status(400).send(createResponse(400, "Invalid request", "", ""))
             };
 
@@ -38,17 +38,33 @@ module.exports = {
 
                     console.log("USER FOUND : : ", user);
 
+                    //buy body
                     let orderDetails = {
                         stockName: req.body.stockName,
                         stockSymbol: req.body.stockSymbol,
-                        qty: req.body.qty,
+                        stockId: req.body.stockId,
                         stockPrice: req.body.stockPrice,
                         type: req.body.type,
                     };
 
+                    //move these fields inside if buy if sell according to requirement and setup validation
+
+                    req.body.buyQty ? orderDetails['boughtQty'] = req.body.buyQty : '';
+                    req.body.holdingQty ? orderDetails['holdingQty'] = req.body.holdingQty : '';
+                    req.body.soldQty ? orderDetails['soldQty'] = req.body.soldQty : '';
+
+                    //selling body
+                    // let orderDetails = {
+                    //     stockName: req.body.stockName,
+                    //     stockSymbol: req.body.stockSymbol,
+                    //     stockId: req.body.stockId,
+                    //     soldQty: req.body.sellingQty,
+                    //     stockPrice: req.body.stockPrice,
+                    //     type: req.body.type,
+                    // };
                     if (orderDetails.type && orderDetails.type == "buy") {
 
-                        orderDetails['amount'] = orderDetails.stockPrice.toFixed(2) * orderDetails.qty;
+                        orderDetails['amount'] = orderDetails.stockPrice.toFixed(2) * orderDetails.boughtQty;
                         orderDetails['userId'] = ObjectId(user._id)
 
                         let createNewOrder = await Order.create(orderDetails).catch(e => {
@@ -58,14 +74,24 @@ module.exports = {
                         if (createNewOrder) {
 
                             if ((user.wallet.balance < orderDetails['amount'])) {
-                                return res.status(409).send(createResponse(409, "Balance in your account is too low to buy this qty of stock", token, ""));
+                                return res.status(409).send(createResponse(409, "Balance in your account is too low to buy this buyQty of stock", token, ""));
                             };
 
                             let balance = user.wallet.balance - orderDetails['amount'];
 
                             console.log("New balance : : ", balance);
 
-                            let updateBalance = await User.findOneAndUpdate({ _id: user._id }, { $set: { "wallet.balance": balance } }).catch(e => { throw e })
+                            let updateBalance = await User.findOneAndUpdate({ _id: user._id },
+                                {
+                                    $set:
+                                    {
+                                        "wallet.balance": balance
+                                    },
+                                    $addToSet:
+                                    {
+                                        stockId: req.body.stockId
+                                    }
+                                }).catch(e => { throw e })
 
                             if (updateBalance) {
 
@@ -80,7 +106,7 @@ module.exports = {
                                     },
                                     $inc: {
                                         expenditure: orderDetails['amount'],
-                                        totalQty: req.body.qty,
+                                        totalQty: req.body.buyQty,
                                     }
                                 }, {
                                     upsert: true,
@@ -100,20 +126,22 @@ module.exports = {
                         let stockAnalyticsObj = await StockAnalytics.find({ userId: user._id, stockSymbol: orderDetails.stockSymbol }).catch(e => { throw e });
 
                         if (stockAnalyticsObj && stockAnalyticsObj.length > 0) {
-                            if (orderDetails.qty > stockAnalyticsObj.totalQty) {
+                            if (orderDetails.soldQty > stockAnalyticsObj.totalQty) {
                                 return res.status(400).send(createResponse(400, "You cannot sell more than you own.", "", ""))
                             }
                         } else {
                             return res.status(400).send(createResponse(400, "You cannot sell a stock that you do not own.", "", ""))
                         };
 
-
-                        orderDetails['amount'] = orderDetails.stockPrice.toFixed(2) * orderDetails.qty;
+                        orderDetails['amount'] = orderDetails.stockPrice.toFixed(2) * orderDetails.soldQty;
                         orderDetails['userId'] = ObjectId(data._id)
 
                         let createNewOrder = await Order.create(orderDetails).catch(e => {
                             throw e
                         });
+                        //for reward points logic
+                        //after creating sell order calculate profit or loss
+                        //need per transaction profit loss
 
                         if (createNewOrder) {
 
@@ -136,15 +164,92 @@ module.exports = {
                                     },
                                     $inc: {
                                         revenue: orderDetails['amount'],
-                                        totalQty: -req.body.qty,
+                                        totalQty: -req.body.soldQty,
                                     }
                                 }, {
                                     upsert: true,
                                     new: true
                                 }).catch(e => { throw e });
 
-                                if (stockAnalyticsObj)
-                                    return res.send(createResponse(200, "Sold successfully", token, createNewOrder))
+                                if (stockAnalyticsObj) {
+
+                                    let allOrders = await Order.find({ userId: user._id, stockSymbol: orderDetails.stockSymbol }).sort({ createdAt: 1 }); //returns array of all orders with olders to newest
+
+                                    if (allOrders && allOrders.length) {
+                                        let avgBuyPrice = 0;
+                                        let totalBuyPrice = 0;
+                                        let spliceFrom = 0;
+                                        let spliceTill = 0;
+                                        let sellingQty = orderDetails.soldQty;
+                                        //now need to remove qty from buy order if buy order qty is > 0
+
+                                        for (var k = 0; k < allOrders.length; k++) {
+
+                                            if (
+                                                allOrders[k].type == "buy" &&
+                                                allOrders[k].stockSymbol == orderDetails.stockSymbol &&
+                                                allOrders[k].holdingQty > 0 &&
+                                                allOrders[k].holdingQty >= sellingQty
+                                            ) {
+
+                                                let updateBuyOrder = await Order.findOneAndUpdate({ _id: allOrders[k]._id }, {
+                                                    $inc: {
+                                                        holdingQty: -sellingQty
+                                                    }
+                                                }).catch(e => { throw e });
+
+                                                if (updateBuyOrder) {
+                                                    //find transaction profit / loss here
+                                                    spliceTill += 1;
+                                                    totalBuyPrice += (allOrders[k].stockPrice * sellingQty);
+
+                                                    let sellingAmount = orderDetails.soldQty * orderDetails.stockPrice;
+                                                    let boughtAmount = (totalBuyPrice / spliceTill).toFixed(4);
+
+                                                    let difference = sellingAmount - boughtAmount
+                                                    let updateAnalytics = await StockAnalytics.findOneAndUpdate({ userId: user._id, stockSymbol: orderDetails.stockSymbol }, {
+                                                        $set: {
+                                                            PorL: difference,
+                                                            soldOrderId: createNewOrder._id
+                                                        }
+                                                    }).catch(e => { throw e });
+
+                                                    if (updateAnalytics)
+                                                        break
+                                                }
+
+                                            } else if (
+                                                allOrders[k].type == "buy" &&
+                                                allOrders[k].stockSymbol == orderDetails.stockSymbol &&
+                                                allOrders[k].holdingQty > 0 &&
+                                                allOrders[k].holdingQty < sellingQty
+                                            ) {
+
+                                                totalBuyPrice += (allOrders[k].stockPrice * allOrders[k].holdingQty);
+                                                spliceTill += 1;
+
+                                                let updateBuyOrder = await Order.findOneAndUpdate({ _id: allOrders[k]._id }, {
+                                                    $inc: {
+                                                        holdingQty: -allOrders[k].holdingQty
+                                                    }
+                                                }).catch(e => { throw e });
+
+                                                if (updateBuyOrder) {
+                                                    sellingQty -= allOrders[k].holdingQty
+                                                    continue
+                                                }
+
+                                            } else {
+                                                continue
+                                            };
+                                        };
+                                    };
+
+                                    //reward point logic ere
+                                    
+                                    return res.send(createResponse(200, "Sold successfully", token, createNewOrder));
+                                };
+
                             };
                         };
                     } else {

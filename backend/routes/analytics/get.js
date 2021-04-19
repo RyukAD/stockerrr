@@ -84,6 +84,16 @@ module.exports = {
 
                             for (var i = 0; i < allStocks.length; i++) {
 
+                                /*
+                                {
+                                    symbol: {
+                                        net revenue: '',
+                                        totalShares: '',
+                                        symbol: '',
+                                    }
+                                }
+                                */
+
                                 if (allStocks[i].totalQty == 0) {
                                     resultArr.push({
                                         symbol: allStocks[i].stockSymbol,
@@ -92,12 +102,14 @@ module.exports = {
                                     })
                                     continue
                                 } else if (!allStocks[i].revenue) {
+                                    //line 109 handeled here, if no revenue means no stock sold
                                     resultArr.push({
                                         symbol: allStocks[i].stockSymbol,
-                                        message: "No revenue done"
+                                        message: "No revenue done. Sell a stock to generate revenue!"
                                     });
                                 } else {
                                     //calculate the actual profit/loss
+                                    //try to move this logic to lib, to calculate profit / loss usefulla
 
                                     let sellOrders = await Order.find({
                                         userId: user._id,
@@ -105,6 +117,7 @@ module.exports = {
                                         type: "sell"
                                     }).sort({ createdAt: -1 }).catch(e => { throw e });
 
+                                    //if stock never sold? sellOrders[0] doesnot exits means error
                                     let lastSoldCreatedAt = sellOrders[0].createdAt
 
                                     console.log("LAST SOLD CREATED AT : : : ", lastSoldCreatedAt);

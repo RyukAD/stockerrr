@@ -8,6 +8,7 @@ var userSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false },
     password: String,
     status: { type: Number, default: 1 },
+    stockId: [{ type: mongoose.Schema.Types.ObjectId }],
     wallet: {}
 }, { timestamps: true });
 
