@@ -139,9 +139,6 @@ module.exports = {
                         let createNewOrder = await Order.create(orderDetails).catch(e => {
                             throw e
                         });
-                        //for reward points logic
-                        //after creating sell order calculate profit or loss
-                        //need per transaction profit loss
 
                         if (createNewOrder) {
 
@@ -173,13 +170,15 @@ module.exports = {
 
                                 if (stockAnalyticsObj) {
 
+                                    //for reward points logic
+                                    //after creating sell order calculate profit or loss
+                                    //need per transaction profit loss
+
                                     let allOrders = await Order.find({ userId: user._id, stockSymbol: orderDetails.stockSymbol }).sort({ createdAt: 1 }); //returns array of all orders with olders to newest
 
                                     if (allOrders && allOrders.length) {
-                                        let avgBuyPrice = 0;
                                         let totalBuyPrice = 0;
-                                        let spliceFrom = 0;
-                                        let spliceTill = 0;
+                                        let count = 0;
                                         let sellingQty = orderDetails.soldQty;
                                         //now need to remove qty from buy order if buy order qty is > 0
 
@@ -200,21 +199,20 @@ module.exports = {
 
                                                 if (updateBuyOrder) {
                                                     //find transaction profit / loss here
-                                                    spliceTill += 1;
+                                                    count += 1;
                                                     totalBuyPrice += (allOrders[k].stockPrice * sellingQty);
 
                                                     let sellingAmount = orderDetails.soldQty * orderDetails.stockPrice;
-                                                    let boughtAmount = (totalBuyPrice / spliceTill).toFixed(4);
+                                                    let boughtAmount = (totalBuyPrice / count).toFixed(4);
 
-                                                    let difference = sellingAmount - boughtAmount
-                                                    let updateAnalytics = await StockAnalytics.findOneAndUpdate({ userId: user._id, stockSymbol: orderDetails.stockSymbol }, {
+                                                    var difference = sellingAmount - boughtAmount
+                                                    let updateSoldOrder = await Order.findOneAndUpdate({ _id: createNewOrder._id }, {
                                                         $set: {
                                                             PorL: difference,
-                                                            soldOrderId: createNewOrder._id
                                                         }
                                                     }).catch(e => { throw e });
 
-                                                    if (updateAnalytics)
+                                                    if (updateSoldOrder)
                                                         break
                                                 }
 
@@ -226,7 +224,7 @@ module.exports = {
                                             ) {
 
                                                 totalBuyPrice += (allOrders[k].stockPrice * allOrders[k].holdingQty);
-                                                spliceTill += 1;
+                                                count += 1;
 
                                                 let updateBuyOrder = await Order.findOneAndUpdate({ _id: allOrders[k]._id }, {
                                                     $inc: {
@@ -237,17 +235,35 @@ module.exports = {
                                                 if (updateBuyOrder) {
                                                     sellingQty -= allOrders[k].holdingQty
                                                     continue
-                                                }
+                                                };
 
-                                            } else {
+                                            } else if (allOrders[k].status != 0) {
+                                                let updateBuyOrder = await Order.findOneAndUpdate({ _id: allOrders[k]._id }, {
+                                                    $set: {
+                                                        status: 0
+                                                    }
+                                                }).catch(e => { throw e })
                                                 continue
                                             };
                                         };
                                     };
 
-                                    //reward point logic ere
-                                    
-                                    return res.send(createResponse(200, "Sold successfully", token, createNewOrder));
+                                    //reward point logic ere give me rewards please.
+                                    //give 30% of any profit made as reward point
+
+                                    //check if difference is positive
+
+                                    let updateRewardPoints = await User.findOneAndUpdate({ _id: user._id },
+                                        {
+                                            $inc:
+                                            {
+                                                "wallet.rewardPoints": difference >= 0 ? (difference * 0.10) : 0
+                                            }
+                                        }).catch(e => { throw e });
+
+                                    if (updateRewardPoints) {
+                                        return res.send(createResponse(200, "Sold successfully", token, createNewOrder));
+                                    };
                                 };
 
                             };

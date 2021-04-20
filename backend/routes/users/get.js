@@ -154,7 +154,7 @@ module.exports = {
                         //find total amount spent on each ticker to find the %gain or loss
                         console.log("FINAL : : RESULT ARR : : ", resultArr);
                         return res.send(createResponse(200, "Success", token, resultArr));
-                        
+
                     } else {
                         return res.status(404).send(createResponse(404, "No orders found", "", ""))
                     };
@@ -166,5 +166,63 @@ module.exports = {
             console.log("BIG ERROR IN CALCULATE INSIDE USER GET: :", e);
             return res.status(500).send(createResponse(500, "TRY AGAIN AFTER SOMETIME", "", ""));
         };
+    },
+    getTotalPorL: async (req, res, next) => {
+
+        try {
+            var token = req.headers.token;
+
+            var data = await jwt.getData(token);
+
+            if (data) {
+
+                console.log("DECODED TOKEN : :", data, data._id);
+
+                let user = await User.findOne({ _id: data._id }).catch(e => {
+                    throw e
+                });
+
+                if (user) {
+
+                    let soldOrders = await Order.find({ userId: user._id, type: "sell" }).catch(e => { throw e });
+
+                    console.log("ALL ORDERS : :", soldOrders, "LENGTH  : : : ", soldOrders.length);
+
+                    var resultArr = [];
+                    var symbolWiseData = {};
+                    var symbolWiseTotalPorL = {};
+
+                    if (soldOrders && soldOrders.length) {
+                        //finding totalPorL for a specfic stock
+                        soldOrders.forEach((soldOrder) => {
+                            if (!symbolWiseData[soldOrder.stockSymbol]) symbolWiseData[soldOrder.stockSymbol] = [];
+                            symbolWiseData[soldOrder.stockSymbol].push(soldOrder);
+                            if (!symbolWiseTotalPorL[soldOrder.stockSymbol]) symbolWiseTotalPorL[soldOrder.stockSymbol] = 0;
+                            symbolWiseTotalPorL[soldOrder.stockSymbol] += soldOrder.PorL
+                        });
+
+                        Object.keys(symbolWiseData).forEach(symbol => {
+                            resultArr.push({
+                                "symbol": symbol,
+                                "totalPorL": symbolWiseTotalPorL[symbol]
+                            });
+                        });
+                    } else {
+                        console.log("NEVER SOLD BRO : : ");
+                        res.staus(404).send(createResponse(404, "Please a comodity to find you total profit or loss on a ticker", "", ""));
+                    };
+
+                    if(resultArr && resultArr.length) {
+                        res.send(createResponse(200, "Success", token, resultArr));
+                    };
+
+                    //just need to sum the PorL field from all the sold items
+                }
+            }
+        } catch (e) {
+            console.log("HUGE ERROR BRO IN GET TOTAL P OR L : : ", e);
+            res.status(500).send(createResponse(500, "Please try again after some time", "", ""))
+        }
+
     }
 }

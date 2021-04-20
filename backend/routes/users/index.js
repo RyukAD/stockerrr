@@ -7,7 +7,8 @@ var put = require('./put');
 
 
 //all GET requests here : : 
-// router.get("/", get.calculate); //calculate the profit or loss user is going to make on a stock owned by user
+//get should have user details not get analytics or something
+router.get("/:userId", get.getTotalPorL); //calculate the profit or loss user is going to make on a stock owned by user
 
 //get ends
 

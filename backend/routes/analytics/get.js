@@ -82,83 +82,111 @@ module.exports = {
 
                         } else if (req.query.total) {
 
-                            for (var i = 0; i < allStocks.length; i++) {
+                            let soldOrders = await Order.find({ userId: user._id, type: "sell" }).catch(e => { throw e });
 
-                                /*
-                                {
-                                    symbol: {
-                                        net revenue: '',
-                                        totalShares: '',
-                                        symbol: '',
-                                    }
-                                }
-                                */
+                            console.log("ALL ORDERS : :", soldOrders, "LENGTH  : : : ", soldOrders.length);
 
-                                if (allStocks[i].totalQty == 0) {
+                            // var resultArr = [];
+                            var symbolWiseData = {};
+                            var symbolWiseTotalPorL = {};
+
+                            if (soldOrders && soldOrders.length) {
+                                //finding totalPorL for a specfic stock
+                                soldOrders.forEach((soldOrder) => {
+                                    if (!symbolWiseData[soldOrder.stockSymbol]) symbolWiseData[soldOrder.stockSymbol] = [];
+                                    symbolWiseData[soldOrder.stockSymbol].push(soldOrder);
+                                    if (!symbolWiseTotalPorL[soldOrder.stockSymbol]) symbolWiseTotalPorL[soldOrder.stockSymbol] = 0;
+                                    symbolWiseTotalPorL[soldOrder.stockSymbol] += soldOrder.PorL
+                                });
+
+                                Object.keys(symbolWiseData).forEach(symbol => {
                                     resultArr.push({
-                                        symbol: allStocks[i].stockSymbol,
-                                        netRevenue: allStocks[i].revenue - allStocks[i].expenditure,
-                                        totalShares: allStocks[i].totalQty
-                                    })
-                                    continue
-                                } else if (!allStocks[i].revenue) {
-                                    //line 109 handeled here, if no revenue means no stock sold
-                                    resultArr.push({
-                                        symbol: allStocks[i].stockSymbol,
-                                        message: "No revenue done. Sell a stock to generate revenue!"
+                                        "symbol": symbol,
+                                        "totalPorL": symbolWiseTotalPorL[symbol]
                                     });
-                                } else {
-                                    //calculate the actual profit/loss
-                                    //try to move this logic to lib, to calculate profit / loss usefulla
-
-                                    let sellOrders = await Order.find({
-                                        userId: user._id,
-                                        stockSymbol: allStocks[i].stockSymbol,
-                                        type: "sell"
-                                    }).sort({ createdAt: -1 }).catch(e => { throw e });
-
-                                    //if stock never sold? sellOrders[0] doesnot exits means error
-                                    let lastSoldCreatedAt = sellOrders[0].createdAt
-
-                                    console.log("LAST SOLD CREATED AT : : : ", lastSoldCreatedAt);
-
-                                    let buyOrders = await Order.find({
-                                        userId: user._id,
-                                        stockSymbol: allStocks[i].stockSymbol,
-                                        type: "buy",
-                                        createdAt: {
-                                            $lt: lastSoldCreatedAt
-                                        }
-                                    }).sort({ createdAt: 1 }).catch(e => { throw e });
-
-                                    if (buyOrders) {
-
-                                        var revenue = allStocks[i].revenue;
-                                        var quantity = allStocks[i].totalQty;
-
-                                        console.log("FOUND ORDERS : : ", buyOrders);
-
-                                        for (var j = 0; j < buyOrders.length; j++) {
-                                            if (buyOrders[j].qty < quantity) {
-                                                revenue -= buyOrders[j].amount
-                                                quantity -= buyOrders[j].qty
-                                            } else {
-                                                revenue -= (buyOrders[j].stockPrice * quantity)
-                                            }
-                                        };
-
-                                        resultArr.push({
-                                            symbol: allStocks[i].stockSymbol,
-                                            netRevenue: revenue,
-                                            totalShares: allStocks[i].totalQty
-                                        });
-                                    };
-                                };
+                                });
+                            } else {
+                                console.log("NEVER SOLD BRO : : ");
+                                res.staus(404).send(createResponse(404, "Please a comodity to find you total profit or loss on a ticker", "", ""));
                             };
+
+                            // for (var i = 0; i < allStocks.length; i++) {
+
+                            //     /*
+                            //     {
+                            //         symbol: {
+                            //             net revenue: '',
+                            //             totalShares: '',
+                            //             symbol: '',
+                            //         }
+                            //     }
+                            //     */
+
+                            //     if (allStocks[i].totalQty == 0) {
+                            //         resultArr.push({
+                            //             symbol: allStocks[i].stockSymbol,
+                            //             netRevenue: allStocks[i].revenue - allStocks[i].expenditure,
+                            //             totalShares: allStocks[i].totalQty
+                            //         })
+                            //         continue
+                            //     } else if (!allStocks[i].revenue) {
+                            //         //line 109 handeled here, if no revenue means no stock sold
+                            //         resultArr.push({
+                            //             symbol: allStocks[i].stockSymbol,
+                            //             message: "No revenue done. Sell a stock to generate revenue!"
+                            //         });
+                            //     } else {
+                            //         //calculate the actual profit/loss
+                            //         //try to move this logic to lib, to calculate profit / loss usefulla
+
+                            //         let sellOrders = await Order.find({
+                            //             userId: user._id,
+                            //             stockSymbol: allStocks[i].stockSymbol,
+                            //             type: "sell"
+                            //         }).sort({ createdAt: -1 }).catch(e => { throw e });
+
+                            //         //if stock never sold? sellOrders[0] doesnot exits means error
+                            //         let lastSoldCreatedAt = sellOrders[0].createdAt
+
+                            //         console.log("LAST SOLD CREATED AT : : : ", lastSoldCreatedAt);
+
+                            //         let buyOrders = await Order.find({
+                            //             userId: user._id,
+                            //             stockSymbol: allStocks[i].stockSymbol,
+                            //             type: "buy",
+                            //             createdAt: {
+                            //                 $lt: lastSoldCreatedAt
+                            //             }
+                            //         }).sort({ createdAt: 1 }).catch(e => { throw e });
+
+                            //         if (buyOrders) {
+
+                            //             var revenue = allStocks[i].revenue;
+                            //             var quantity = allStocks[i].totalQty;
+
+                            //             console.log("FOUND ORDERS : : ", buyOrders);
+
+                            //             for (var j = 0; j < buyOrders.length; j++) {
+                            //                 if (buyOrders[j].qty < quantity) {
+                            //                     revenue -= buyOrders[j].amount
+                            //                     quantity -= buyOrders[j].qty
+                            //                 } else {
+                            //                     revenue -= (buyOrders[j].stockPrice * quantity)
+                            //                 }
+                            //             };
+
+                            //             resultArr.push({
+                            //                 symbol: allStocks[i].stockSymbol,
+                            //                 netRevenue: revenue,
+                            //                 totalShares: allStocks[i].totalQty
+                            //             });
+                            //         };
+                            //     };
+                            // };
 
                             console.log("RESULT ARR : : ", resultArr);
 
-                            res.send(createResponse(200, "Net profit or income", token, resultArr))
+                            res.send(createResponse(200, "Net profit or loss till now on particular stock", token, resultArr))
                         }
                     }
 
